@@ -1,6 +1,6 @@
 import { feedUrl, fields, selectCanterbury, statusOf } from "./data.mjs";
 
-const $ = id => document.getElementById(id);
+const $ = selector => document.querySelector(selector);
 const statuses = {
   all: ["All stations", "#142d42"], rising: ["Rising", "#a85b00"],
   falling: ["Falling", "#0369a1"], steady: ["No change", "#475569"],
