@@ -17,7 +17,7 @@ Serve this folder over HTTP, for example with `python -m http.server 8000`, and 
 
 ## ArcGIS Online prototype
 
-The original dashboard used a spatial selection and a live layer filter. The standalone app recomputes geographic membership against the full Stats NZ polygon.
+The original dashboard used a spatial selection and a live layer filter. The standalone app recomputes geographic membership against the full Stats NZ polygon and excludes two stations that were outside the prototype selection: Waiau Toa/Clarence (62107) and Ahuriri Sth Diadem (71116). This matches the 177-station prototype against the tested feed, while allowing the count to change when ECan adds or removes other stations.
 
 ![ArcGIS dashboard regional overview](docs/arcgis-overview.png)
 

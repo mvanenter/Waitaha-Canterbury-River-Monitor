@@ -12,16 +12,21 @@
 <body>
 <header><div><p class="eyebrow">WAITAHA CANTERBURY</p><h1>River Monitor</h1></div><div class="health"><button id="refresh">Refresh readings</button><p id="feed" role="status">Connecting to the Environment Canterbury feed…</p></div></header>
 <main>
-<section aria-labelledby="status-title"><div class="section-title"><h2 id="status-title">Stations in view</h2><span id="visible"></span></div><div id="counts" class="counts"></div></section>
+<section aria-labelledby="status-title"><div class="section-title"><h2 id="status-title">Stations in view</h2><span id="visible"></span></div><p class="trend-note">Trend shows the reported water-level change over the last hour.</p><div id="counts" class="counts"></div></section>
 <div class="workspace">
-<section class="map-panel" aria-label="Regional map"><div class="panel-head"><h2>Monitoring network</h2><button id="reset">Canterbury view</button></div><div id="map" aria-label="Map of Canterbury monitoring stations"></div></section>
+<section class="map-panel" aria-label="Regional map"><div class="panel-head"><h2>Monitoring network</h2><button id="reset">Canterbury view</button></div>
+<div class="pinned-stations" aria-live="polite">
+  <span><b>A</b> <span id="pinned-a">Choose a station</span></span>
+  <span><b>B</b> <span id="pinned-b">Choose a station</span></span>
+  <a href="#comparison">Compare stations</a>
+</div><div id="map" aria-label="Map of Canterbury monitoring stations"></div></section>
 <section class="stations" aria-labelledby="station-title">
 <div class="panel-head"><h2 id="station-title">Station readings</h2></div>
 <p class="hint">Zoom or pan to browse stations. Oldest readings first.</p>
 <ul id="stations"></ul>
 </section>
 </div>
-<section class="comparison" aria-labelledby="comparison-title"><div class="section-title"><h2 id="comparison-title">Compare stations</h2></div><div class="compare-grid">
+<section id="comparison" class="comparison" aria-labelledby="comparison-title"><div class="section-title"><h2 id="comparison-title">Compare stations</h2></div><div class="compare-grid">
 <article><label for="station-a">Station A</label><select id="station-a"></select><div id="details-a"></div></article>
 <article><label for="station-b">Station B</label><select id="station-b"></select><div id="details-b"></div></article>
 </div></section>

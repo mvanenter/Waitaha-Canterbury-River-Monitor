@@ -1,6 +1,8 @@
 export const feedUrl = "https://gis1.ecan.govt.nz/arcgis/rest/services/Public/WaterQualityandMonitoring/FeatureServer/12/query";
 export const fields = ["SITENUMBER", "SITENAME", "Last_sample", "Current_stage_height_m", "Current_flow_m3s", "Change_last_hour_mm", "Peak_flow_7_day"];
 const day = 86_400_000;
+// Match the ArcGIS prototype's station scope at the two boundary discrepancies.
+const excludedStationIds = new Set([62107, 71116]);
 
 export function statusOf(station, now = Date.now()) {
   const { Last_sample: time, Change_last_hour_mm: change } = station;
@@ -40,7 +42,7 @@ export function selectCanterbury(payload, boundary) {
   const sites = new Map();
   for (const { attributes, geometry } of payload.features) {
     if (!attributes || !geometry || !Number.isFinite(geometry.x) || !Number.isFinite(geometry.y) ||
-        !Number.isFinite(attributes.SITENUMBER) || !attributes.SITENAME ||
+        !Number.isFinite(attributes.SITENUMBER) || excludedStationIds.has(attributes.SITENUMBER) || !attributes.SITENAME ||
         !inRegion([geometry.x, geometry.y], boundary)) continue;
     const next = { ...attributes, lng: geometry.x, lat: geometry.y };
     const previous = sites.get(next.SITENUMBER);

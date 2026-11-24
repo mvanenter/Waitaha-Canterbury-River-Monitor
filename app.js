@@ -9,6 +9,8 @@ const statuses = {
 const dateFormat = new Intl.DateTimeFormat("en-NZ", {
   timeZone: "Pacific/Auckland", dateStyle: "medium", timeStyle: "short"
 });
+const ageFormat = new Intl.RelativeTimeFormat("en-NZ");
+const slots = ["a", "b"];
 const numberFormat = new Intl.NumberFormat("en-NZ", { maximumFractionDigits: 2 });
 const timeText = value => Number.isFinite(value) ? dateFormat.format(value) : "Not reported";
 const numberText = value => Number.isFinite(value) ? numberFormat.format(value) : "Not reported";
@@ -37,10 +39,25 @@ function element(tag, value, className) {
   return node;
 }
 
+function observationText(value, now = Date.now()) {
+  if (!Number.isFinite(value)) return "Not reported";
+  if (value > now) return timeText(value);
+  const minutes = Math.floor((now - value) / 60_000);
+  const age = minutes >= 1440 ? ageFormat.format(-Math.floor(minutes / 1440), "day")
+    : minutes >= 60 ? ageFormat.format(-Math.floor(minutes / 60), "hour")
+    : minutes > 0 ? ageFormat.format(-minutes, "minute") : "just now";
+  return `${timeText(value)} · Observed ${age}`;
+}
+
+function selectedStation(slot) {
+  const id = $("#station-" + slot).value;
+  return stations.find(row => String(row.SITENUMBER) === id);
+}
+
 function details(station) {
   const list = element("dl");
   const rows = [
-    ["Last observed", timeText(station.Last_sample)],
+    ["Last observed", observationText(station.Last_sample)],
     ["Water level (m)", numberText(station.Current_stage_height_m)],
     ["Current flow (m³/s)", numberText(station.Current_flow_m3s)],
     ["Hourly water-level change (mm)", numberText(station.Change_last_hour_mm)],
@@ -57,18 +74,17 @@ function details(station) {
 function pin(station, slot) {
   const select = $("#station-" + slot);
   select.value = String(station.SITENUMBER);
-  renderComparison(slot);
+  render();
 }
 
 function renderComparison(slot) {
-  const id = $("#station-" + slot).value;
-  const station = stations.find(row => String(row.SITENUMBER) === id);
+  const station = selectedStation(slot);
   $("#details-" + slot).replaceChildren(station ? details(station) : element("p", "Choose a station.", "hint"));
 }
 
 function populateComparison() {
   const alphabetical = [...stations].sort((a, b) => a.SITENAME.localeCompare(b.SITENAME, "en-NZ"));
-  for (const slot of ["a", "b"]) {
+  for (const slot of slots) {
     const select = $("#station-" + slot);
     const prior = select.value;
     const placeholder = new Option("Choose a station", "");
@@ -76,14 +92,13 @@ function populateComparison() {
     select.value = alphabetical.some(row => String(row.SITENUMBER) === prior)
       ? prior : prior ? "" : (slot === "a" ? "1071105" : "69203");
     if (select.selectedIndex < 0) select.value = "";
-    renderComparison(slot);
   }
 }
 
 function popup(station) {
   const panel = element("div");
   panel.append(element("strong", station.SITENAME), details(station));
-  for (const slot of ["a", "b"]) {
+  for (const slot of slots) {
     const button = element("button", "Pin as " + slot.toUpperCase());
     button.type = "button";
     button.addEventListener("click", () => pin(station, slot));
@@ -113,6 +128,16 @@ function render() {
   const now = Date.now();
   const counts = Object.fromEntries(Object.keys(statuses).map(key => [key, 0]));
   const visible = [];
+  const pinned = new Map();
+  for (const slot of slots) {
+    const station = selectedStation(slot);
+    $("#pinned-" + slot).textContent = station?.SITENAME ?? "Choose a station";
+    if (station) {
+      const id = station.SITENUMBER;
+      pinned.set(id, [...(pinned.get(id) ?? []), slot.toUpperCase()]);
+    }
+    renderComparison(slot);
+  }
   markers.clearLayers();
   stationMarkers.clear();
   for (const station of stations) {
@@ -130,6 +155,12 @@ function render() {
       fillColor: tone, fillOpacity: ["missing", "older"].includes(status) ? 0 : 0.9
     });
     marker.bindPopup(() => popup(station), { autoPan: false }).addTo(markers);
+    const labels = pinned.get(station.SITENUMBER);
+    if (labels) {
+      marker.bindTooltip(labels.join(" / "), {
+        permanent: true, direction: "top", offset: [0, -4], className: "comparison-badge"
+      });
+    }
     stationMarkers.set(station.SITENUMBER, marker);
   }
   for (const [key, { button, total }] of countButtons) {
@@ -137,10 +168,10 @@ function render() {
     button.setAttribute("aria-pressed", String(filter === key));
   }
   $("#visible").textContent = `${counts.all} in view · ${stations.length} in Canterbury`;
-  renderStationList(visible);
+  renderStationList(visible, now);
 }
 
-function renderStationList(visible) {
+function renderStationList(visible, now) {
   const matches = visible.sort((a, b) => (a.station.Last_sample ?? 0) - (b.station.Last_sample ?? 0)
     || a.station.SITENAME.localeCompare(b.station.SITENAME));
   $("#stations").replaceChildren(...matches.map(({ station, status, tone }) => {
@@ -149,12 +180,12 @@ function renderStationList(visible) {
     dot.style.setProperty("--tone", tone);
     dot.title = statuses[status][0];
     const button = element("button", station.SITENAME, "station-link");
-    button.append(element("small", timeText(station.Last_sample)));
+    button.append(element("small", observationText(station.Last_sample, now)));
     button.addEventListener("click", () => {
       stationMarkers.get(station.SITENUMBER)?.openPopup();
     });
     item.append(dot, button);
-    for (const slot of ["a", "b"]) {
+    for (const slot of slots) {
       const letter = slot.toUpperCase();
       const control = element("button", letter, "pin");
       control.setAttribute("aria-label", `Pin ${station.SITENAME} as Station ${letter}`);
@@ -208,7 +239,7 @@ async function refresh() {
 }
 
 $("#refresh").addEventListener("click", refresh);
-for (const slot of ["a", "b"]) $("#station-" + slot).addEventListener("change", () => renderComparison(slot));
+for (const slot of slots) $("#station-" + slot).addEventListener("change", render);
 map.on("moveend", render);
 
 async function initialise() {
