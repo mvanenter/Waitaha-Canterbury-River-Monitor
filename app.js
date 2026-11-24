@@ -1,4 +1,4 @@
-import { feedUrl, fields, searchStations, selectCanterbury, statusOf } from "./data.mjs";
+import { feedUrl, fields, selectCanterbury, statusOf } from "./data.mjs";
 
 const $ = id => document.getElementById(id);
 const statuses = {
@@ -137,28 +137,12 @@ function render() {
     button.setAttribute("aria-pressed", String(filter === key));
   }
   $("#visible").textContent = `${counts.all} in view · ${stations.length} in Canterbury`;
-  renderStationList(visible, now);
+  renderStationList(visible);
 }
 
-function openSearchResult(station) {
-  filter = "all";
-  $("#search").value = "";
-  map.setView([station.lat, station.lng], Math.max(map.getZoom(), 11), { animate: false });
-  render();
-  stationMarkers.get(station.SITENUMBER)?.openPopup();
-  $("#map").focus();
-}
-
-function renderStationList(visible, now) {
-  const query = $("#search").value.trim();
-  const matches = query ? searchStations(stations, query).map(station => {
-    const status = statusOf(station, now);
-    return { station, status, tone: statuses[status][1] };
-  }) : visible.sort((a, b) => (a.station.Last_sample ?? 0) - (b.station.Last_sample ?? 0)
+function renderStationList(visible) {
+  const matches = visible.sort((a, b) => (a.station.Last_sample ?? 0) - (b.station.Last_sample ?? 0)
     || a.station.SITENAME.localeCompare(b.station.SITENAME));
-  $("#station-list-status").textContent = query
-    ? `${matches.length} ${matches.length === 1 ? "match" : "matches"} across Canterbury`
-    : "Oldest observations first";
   $("#stations").replaceChildren(...matches.map(({ station, status, tone }) => {
     const item = element("li");
     const dot = element("span", null, ["older", "missing"].includes(status) ? "dot hollow" : "dot");
@@ -167,8 +151,7 @@ function renderStationList(visible, now) {
     const button = element("button", station.SITENAME, "station-link");
     button.append(element("small", timeText(station.Last_sample)));
     button.addEventListener("click", () => {
-      if (query) openSearchResult(station);
-      else stationMarkers.get(station.SITENUMBER)?.openPopup();
+      stationMarkers.get(station.SITENUMBER)?.openPopup();
     });
     item.append(dot, button);
     for (const slot of ["a", "b"]) {
@@ -182,7 +165,7 @@ function renderStationList(visible, now) {
   }));
   if (!matches.length) {
     const message = !lastFetch ? "Awaiting readings."
-      : query ? "No stations match your search." : "No matching stations in view.";
+      : "No matching stations in view.";
     $("#stations").append(element("li", message));
   }
 }
@@ -224,12 +207,6 @@ async function refresh() {
   }
 }
 
-$("#search").addEventListener("input", render);
-$("#station-search").addEventListener("submit", event => {
-  event.preventDefault();
-  const [first] = searchStations(stations, $("#search").value);
-  if (first) openSearchResult(first);
-});
 $("#refresh").addEventListener("click", refresh);
 for (const slot of ["a", "b"]) $("#station-" + slot).addEventListener("change", () => renderComparison(slot));
 map.on("moveend", render);

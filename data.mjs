@@ -2,19 +2,6 @@ export const feedUrl = "https://gis1.ecan.govt.nz/arcgis/rest/services/Public/Wa
 export const fields = ["SITENUMBER", "SITENAME", "Last_sample", "Current_stage_height_m", "Current_flow_m3s", "Change_last_hour_mm", "Peak_flow_7_day"];
 const day = 86_400_000;
 
-function searchText(value) {
-  return String(value).normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("en-NZ");
-}
-
-export function searchStations(stations, query) {
-  const terms = searchText(query).trim().split(/\s+/).filter(Boolean);
-  if (!terms.length) return [];
-  return stations.filter(station => {
-    const text = searchText(`${station.SITENAME} ${station.SITENUMBER}`);
-    return terms.every(term => text.includes(term));
-  }).sort((a, b) => a.SITENAME.localeCompare(b.SITENAME, "en-NZ"));
-}
-
 export function statusOf(station, now = Date.now()) {
   const { Last_sample: time, Change_last_hour_mm: change } = station;
   if (!Number.isFinite(time) || time > now) return "missing";

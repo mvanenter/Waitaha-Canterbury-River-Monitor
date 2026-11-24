@@ -2,7 +2,7 @@
 
 A regional dashboard for exploring Environment Canterbury's provisional monitoring observations. Zoom or pan to update the status cards and station list. Click a card to filter the gauges in view. Pin any two gauges to compare their latest reported water level, current flow, hourly water-level change and seven-day peak flow. A missing measurement displays as “Not reported”.
 
-Use **Find a Canterbury station** to search across the region by name or ECan site number. Select a result or press Enter to centre the map and open its readings. Search results also provide A and B buttons for adding stations directly to the comparison.
+Select a gauge on the map or a station in the readings list to see its latest observations. Use the A and B buttons to pin stations for comparison.
 
 ## Run the dashboard
 
