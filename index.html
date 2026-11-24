@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en-NZ">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Waitaha Canterbury River Monitor</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module" src="app.js"></script>
+</head>
+<body>
+<header><div><p class="eyebrow">WAITAHA CANTERBURY</p><h1>River Monitor</h1></div><div class="health"><button id="refresh">Refresh readings</button><p id="feed" role="status">Connecting to the Environment Canterbury feed…</p></div></header>
+<main>
+<section aria-labelledby="status-title"><div class="section-title"><h2 id="status-title">Stations in view</h2><span id="visible"></span></div><div id="counts" class="counts"></div></section>
+<div class="workspace">
+<section class="map-panel" aria-label="Regional map"><div class="panel-head"><h2>Monitoring network</h2><button id="reset">Canterbury view</button></div><div id="map" aria-label="Map of Canterbury monitoring stations"></div></section>
+<section class="stations" aria-labelledby="station-title">
+<div class="panel-head"><h2 id="station-title">Station readings</h2></div>
+<form class="search" id="station-search" role="search">
+<label for="search">Find a Canterbury station</label>
+<input id="search" type="search" placeholder="Station name or site number" aria-controls="stations" autocomplete="off">
+</form>
+<p class="hint" id="station-list-status" role="status">Oldest observations first</p>
+<ul id="stations"></ul>
+</section>
+</div>
+<section class="comparison" aria-labelledby="comparison-title"><div class="section-title"><h2 id="comparison-title">Compare stations</h2></div><div class="compare-grid">
+<article><label for="station-a">Station A</label><select id="station-a"></select><div id="details-a"></div></article>
+<article><label for="station-b">Station B</label><select id="station-b"></select><div id="details-b"></div></article>
+</div></section>
+<footer>Source: <a href="https://www.ecan.govt.nz/data/riverflow">Environment Canterbury</a> (provisional observations). Boundary: <a href="https://services2.arcgis.com/vKb0s8tBIA3bdocZ/arcgis/rest/services/Regional_Council_2025/FeatureServer/0">Stats NZ Regional Council 2025</a>. Times shown in New Zealand local time.</footer>
+</main></body></html>
