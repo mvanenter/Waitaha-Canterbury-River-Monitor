@@ -1,5 +1,5 @@
 import { readHistory, recordLevels, plotLevel } from "./history.mjs";
-import { comparisonLink, feedUrl, fields, selectCanterbury, statusOf } from "./data.mjs";
+import { feedUrl, fields, selectCanterbury, statusOf } from "./data.mjs";
 
 const $ = selector => document.querySelector(selector);
 const statuses = {
@@ -182,7 +182,7 @@ function render({ redrawMarkers = true } = {}) {
   const visible = [];
   const pinned = new Map();
   const hasSelection = slots.some(slot => selectedStation(slot));
-  $("#share-comparison").disabled = $("#copy-results").disabled = !hasSelection;
+  $("#copy-results").disabled = !hasSelection;
   for (const slot of slots) {
     const station = selectedStation(slot);
     $("#pinned-" + slot).textContent = station?.SITENAME ?? "Choose a station";
@@ -306,40 +306,35 @@ for (const slot of slots) {
   });
 }
 
-async function copyComparison(text, label) {
+$("#copy-results").addEventListener("click", async () => {
+  const pins = slots.flatMap(slot => {
+    const station = selectedStation(slot);
+    return station ? [{ slot, station }] : [];
+  });
+  if (!pins.length) return;
+  const numeric = value => Number.isFinite(value) ? String(value) : "Not reported";
+  const rows = [
+    ["Reading", ...pins.map(({ slot, station }) => `Station ${slot.toUpperCase()} · ${station.SITENAME}`)],
+    ["Last observed (NZ local time)", ...pins.map(({ station }) => timeText(station.Last_sample))],
+    ["Water level (m)", ...pins.map(({ station }) => numeric(station.Current_stage_height_m))],
+    ["Hourly water-level change (mm)", ...pins.map(({ station }) => numeric(station.Change_last_hour_mm))],
+    ["Current flow (m³/s)", ...pins.map(({ station }) => numeric(station.Current_flow_m3s))],
+    ["7-day peak flow (m³/s)", ...pins.map(({ station }) => numeric(station.Peak_flow_7_day))],
+    ["Source", ...pins.map(() => "Environment Canterbury (provisional observations)")]
+  ];
+  const text = rows.map(row => row.join("\t")).join("\n");
   const fallback = $("#comparison-copy");
   try {
     await navigator.clipboard.writeText(text);
     fallback.hidden = true;
-    $("#share-status").textContent = `${label} copied.`;
+    $("#share-status").textContent = "Results copied.";
   } catch {
     fallback.value = text;
     fallback.hidden = false;
     fallback.focus();
     fallback.select();
-    $("#share-status").textContent = `Press Ctrl+C to copy the selected ${label.toLowerCase()}.`;
+    $("#share-status").textContent = "Press Ctrl+C to copy the selected results.";
   }
-}
-
-$("#share-comparison").addEventListener("click", () =>
-  copyComparison(comparisonLink(location.href, $("#station-a").value, $("#station-b").value), "Comparison link"));
-
-$("#copy-results").addEventListener("click", () => {
-  const unit = (value, suffix) => Number.isFinite(value) ? `${numberText(value)} ${suffix}` : "Not reported";
-  const sections = ["Waitaha Canterbury River Monitor", "Source: Environment Canterbury (provisional observations). Times shown in New Zealand local time."];
-  for (const slot of slots) {
-    const station = selectedStation(slot);
-    if (!station) continue;
-    sections.push([
-      `Station ${slot.toUpperCase()} · ${station.SITENAME}`,
-      `Last observed: ${timeText(station.Last_sample)}`,
-      `Water level: ${unit(station.Current_stage_height_m, "m")}`,
-      `Water-level change in the preceding hour: ${unit(station.Change_last_hour_mm, "mm")}`,
-      `Current flow: ${unit(station.Current_flow_m3s, "m³/s")}`,
-      `7-day peak flow: ${unit(station.Peak_flow_7_day, "m³/s")}`
-    ].join("\n"));
-  }
-  return copyComparison(sections.join("\n\n"), "Comparison results");
 });
 
 // Keep the open pop-up attached when Leaflet pans to make room for it.
