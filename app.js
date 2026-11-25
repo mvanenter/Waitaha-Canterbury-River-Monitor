@@ -55,12 +55,25 @@ function selectedStation(slot) {
 }
 
 function details(station) {
+  const detailsPanel = element("div");
+  const reading = element("div", null, "level-reading");
+  const level = station.Current_stage_height_m;
+  const change = station.Change_last_hour_mm;
+  const changeText = !Number.isFinite(change) ? "Hourly change not reported"
+    : change === 0 ? "No water-level change in the last hour"
+    : `${change > 0 ? "Rose" : "Fell"} ${numberText(Math.abs(change))} mm in the hour before this reading`;
+  const observed = Number.isFinite(station.Last_sample)
+    ? observationText(station.Last_sample) : "Observation time not reported";
+  reading.append(
+    element("span", "Water level", "level-label"),
+    element("strong", Number.isFinite(level) ? `${numberText(level)} m` : "Not reported", "level-value"),
+    element("span", changeText, "level-context"),
+    element("span", observed, "level-context")
+  );
+
   const list = element("dl");
   const rows = [
-    ["Last observed", observationText(station.Last_sample)],
-    ["Water level (m)", numberText(station.Current_stage_height_m)],
     ["Current flow (m³/s)", numberText(station.Current_flow_m3s)],
-    ["Hourly water-level change (mm)", numberText(station.Change_last_hour_mm)],
     ["7-day peak flow (m³/s)", numberText(station.Peak_flow_7_day)]
   ];
   for (const [label, value] of rows) {
@@ -68,7 +81,8 @@ function details(station) {
     row.append(element("dt", label), element("dd", value));
     list.append(row);
   }
-  return list;
+  detailsPanel.append(reading, list);
+  return detailsPanel;
 }
 
 function pin(station, slot) {
