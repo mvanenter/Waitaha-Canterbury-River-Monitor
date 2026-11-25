@@ -18,3 +18,10 @@
 .level-chart h3{color:#142d42;font-size:.85rem;margin:0 0 4px}
 .level-chart p{margin:3px 0}
 .level-chart canvas{display:block;width:100%;height:auto}
+
+.gauge-popup .leaflet-popup-content{margin:9px 24px 9px 11px}
+.gauge-popup-summary .level-reading{padding:4px 7px;margin:4px 0;gap:1px}
+.gauge-popup-summary .level-value{font-size:1.15rem}
+.gauge-popup-summary .level-label,.gauge-popup-summary .level-context{font-size:.72rem}
+.gauge-popup-actions{display:flex;gap:5px}
+.gauge-popup-actions button{font-size:.72rem;padding:2px 6px}

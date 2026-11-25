@@ -79,8 +79,7 @@ function levelChart(station) {
   return section;
 }
 
-function details(station) {
-  const detailsPanel = element("div");
+function waterLevelReading(station) {
   const reading = element("div", null, "level-reading");
   const level = station.Current_stage_height_m;
   const change = station.Change_last_hour_mm;
@@ -96,6 +95,11 @@ function details(station) {
     element("span", observed, "level-context")
   );
 
+  return reading;
+}
+
+function details(station) {
+  const detailsPanel = element("div");
   const list = element("dl");
   const rows = [
     ["Current flow (m³/s)", numberText(station.Current_flow_m3s)],
@@ -106,7 +110,7 @@ function details(station) {
     row.append(element("dt", label), element("dd", value));
     list.append(row);
   }
-  detailsPanel.append(reading, levelChart(station), list);
+  detailsPanel.append(waterLevelReading(station), levelChart(station), list);
   return detailsPanel;
 }
 
@@ -135,13 +139,14 @@ function populateComparison() {
 }
 
 function popup(station) {
-  const panel = element("div");
-  panel.append(element("strong", station.SITENAME), details(station));
+  const panel = element("div", null, "gauge-popup-summary");
+  const actions = element("div", null, "gauge-popup-actions");
+  panel.append(element("strong", station.SITENAME), waterLevelReading(station), actions);
   for (const slot of slots) {
     const button = element("button", "Pin as " + slot.toUpperCase());
     button.type = "button";
     button.addEventListener("click", () => pin(station, slot));
-    panel.append(button);
+    actions.append(button);
   }
   return panel;
 }
@@ -162,7 +167,7 @@ for (const [key, [label, tone]] of Object.entries(statuses)) {
   $("#counts").append(button);
 }
 
-function render() {
+function render({ redrawMarkers = true } = {}) {
   const bounds = map.getBounds();
   const now = Date.now();
   const counts = Object.fromEntries(Object.keys(statuses).map(key => [key, 0]));
@@ -177,8 +182,10 @@ function render() {
     }
     renderComparison(slot);
   }
-  markers.clearLayers();
-  stationMarkers.clear();
+  if (redrawMarkers) {
+    markers.clearLayers();
+    stationMarkers.clear();
+  }
   for (const station of stations) {
     const position = [station.lat, station.lng];
     const status = statusOf(station, now);
@@ -188,12 +195,15 @@ function render() {
       counts[status]++;
       if (filter === "all" || filter === status) visible.push({ station, status, tone });
     }
-    if (filter !== "all" && filter !== status) continue;
+    if (!redrawMarkers || (filter !== "all" && filter !== status)) continue;
     const marker = L.circleMarker(position, {
       radius: 5, color: tone, weight: 2,
       fillColor: tone, fillOpacity: ["missing", "older"].includes(status) ? 0 : 0.9
     });
-    marker.bindPopup(() => popup(station), { autoPan: false }).addTo(markers);
+    marker.bindPopup(() => popup(station), {
+      className: "gauge-popup", maxWidth: 225, minWidth: 145,
+      maxHeight: 165, autoPan: true, autoPanPadding: [12, 12]
+    }).addTo(markers);
     const labels = pinned.get(station.SITENUMBER);
     if (labels) {
       marker.bindTooltip(labels.join(" / "), {
@@ -280,7 +290,8 @@ async function refresh() {
 
 $("#refresh").addEventListener("click", refresh);
 for (const slot of slots) $("#station-" + slot).addEventListener("change", render);
-map.on("moveend", render);
+// Keep the open pop-up attached when Leaflet pans to make room for it.
+map.on("moveend", () => render({ redrawMarkers: false }));
 
 async function initialise() {
   let response;
