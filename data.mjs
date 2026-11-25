@@ -53,3 +53,11 @@ export function selectCanterbury(payload, boundary) {
   if (!sites.size) throw new Error("The feed returned no Canterbury stations");
   return [...sites.values()];
 }
+
+export function comparisonLink(href, stationA, stationB) {
+  const url = new URL(href);
+  url.searchParams.set("a", stationA ?? "");
+  url.searchParams.set("b", stationB ?? "");
+  url.hash = "comparison";
+  return url.href;
+}

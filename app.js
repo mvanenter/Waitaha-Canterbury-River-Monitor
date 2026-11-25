@@ -1,5 +1,5 @@
 import { readHistory, recordLevels, plotLevel } from "./history.mjs";
-import { feedUrl, fields, selectCanterbury, statusOf } from "./data.mjs";
+import { comparisonLink, feedUrl, fields, selectCanterbury, statusOf } from "./data.mjs";
 
 const $ = selector => document.querySelector(selector);
 const statuses = {
@@ -12,6 +12,8 @@ const dateFormat = new Intl.DateTimeFormat("en-NZ", {
 });
 const ageFormat = new Intl.RelativeTimeFormat("en-NZ");
 const slots = ["a", "b"];
+const requestedPins = new URLSearchParams(globalThis.location?.search);
+const pinSelection = { a: requestedPins.get("a") ?? "1071105", b: requestedPins.get("b") ?? "69203" };
 const numberFormat = new Intl.NumberFormat("en-NZ", { maximumFractionDigits: 2 });
 const timeText = value => Number.isFinite(value) ? dateFormat.format(value) : "Not reported";
 const numberText = value => Number.isFinite(value) ? numberFormat.format(value) : "Not reported";
@@ -62,8 +64,9 @@ function levelChart(station) {
     ([time]) => time >= now - 86_400_000 && time <= now);
   const section = element("section", null, "level-chart");
   section.append(element("h3", "Water level over the past 24 hours"));
+  section.append(element("p", "Checks for new readings automatically every 5 minutes while this page is open. Refresh readings is optional."));
   if (points.length < 2) {
-    section.append(element("p", "Waiting for at least two new observations. This browser collects readings while the dashboard is open."));
+    section.append(element("p", "The chart appears once this browser has saved two readings with different observation times."));
     return section;
   }
   const canvas = element("canvas");
@@ -74,8 +77,12 @@ function levelChart(station) {
   canvas.setAttribute("aria-label",
     `Water level at ${station.SITENAME}. First saved reading: ${first[1]} metres at ${timeText(first[0])}. Latest saved reading: ${last[1]} metres at ${timeText(last[0])}.`);
   plotLevel(canvas, points, now);
+  const coveredMinutes = Math.round((last[0] - first[0]) / 60_000);
+  const hours = Math.floor(coveredMinutes / 60);
+  const minutes = coveredMinutes % 60;
+  const span = hours ? `${hours} h ${minutes} min` : `${minutes} min`;
   section.append(canvas, element("p",
-    `${points.length} saved observations · NZ local time · Collected in this browser`));
+    `${points.length} readings saved in this browser · ${span} from first to last · NZ local time`));
   return section;
 }
 
@@ -117,6 +124,7 @@ function details(station) {
 function pin(station, slot) {
   const select = $("#station-" + slot);
   select.value = String(station.SITENUMBER);
+  pinSelection[slot] = select.value;
   render();
 }
 
@@ -129,11 +137,11 @@ function populateComparison() {
   const alphabetical = [...stations].sort((a, b) => a.SITENAME.localeCompare(b.SITENAME, "en-NZ"));
   for (const slot of slots) {
     const select = $("#station-" + slot);
-    const prior = select.value;
+    const prior = pinSelection[slot];
     const placeholder = new Option("Choose a station", "");
     select.replaceChildren(placeholder, ...alphabetical.map(row => new Option(row.SITENAME, row.SITENUMBER)));
     select.value = alphabetical.some(row => String(row.SITENUMBER) === prior)
-      ? prior : prior ? "" : (slot === "a" ? "1071105" : "69203");
+      ? prior : "";
     if (select.selectedIndex < 0) select.value = "";
   }
 }
@@ -173,6 +181,7 @@ function render({ redrawMarkers = true } = {}) {
   const counts = Object.fromEntries(Object.keys(statuses).map(key => [key, 0]));
   const visible = [];
   const pinned = new Map();
+  $("#share-comparison").disabled = !slots.some(slot => selectedStation(slot));
   for (const slot of slots) {
     const station = selectedStation(slot);
     $("#pinned-" + slot).textContent = station?.SITENAME ?? "Choose a station";
@@ -289,7 +298,28 @@ async function refresh() {
 }
 
 $("#refresh").addEventListener("click", refresh);
-for (const slot of slots) $("#station-" + slot).addEventListener("change", render);
+for (const slot of slots) {
+  $("#station-" + slot).addEventListener("change", event => {
+    pinSelection[slot] = event.target.value;
+    render();
+  });
+}
+
+$("#share-comparison").addEventListener("click", async () => {
+  const link = comparisonLink(location.href, $("#station-a").value, $("#station-b").value);
+  const fallback = $("#comparison-link");
+  try {
+    await navigator.clipboard.writeText(link);
+    fallback.hidden = true;
+    $("#share-status").textContent = "Comparison link copied.";
+  } catch {
+    fallback.value = link;
+    fallback.hidden = false;
+    fallback.focus();
+    fallback.select();
+    $("#share-status").textContent = "Copy the selected link.";
+  }
+});
 // Keep the open pop-up attached when Leaflet pans to make room for it.
 map.on("moveend", () => render({ redrawMarkers: false }));
 

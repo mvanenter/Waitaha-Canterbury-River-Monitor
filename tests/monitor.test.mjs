@@ -35,18 +35,22 @@ test("an invalid refresh keeps the last good station rows and shows a warning", 
   const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
   const nodes = new Map([...html.matchAll(/\bid="([^"]+)"/g)]
     .map(([, id]) => ["#" + id, new Element()]));
+  const mapEvents = new Map();
+  let popupContent, popupOptions;
+  let markerClears = 0;
   const map = {
     setView() { return this; },
     fitBounds() {},
-    on() {},
+    on(name, handler) { mapEvents.set(name, handler); },
     getBounds() { return { contains: () => true }; }
   };
   const leafletLayer = {
-    addTo() { return this; }, getBounds() {}, clearLayers() {},
-    bindPopup() { return this; }, bindTooltip() { return this; }
+    addTo() { return this; }, getBounds() {}, clearLayers() { markerClears++; },
+    bindPopup(content, options) { popupContent = content; popupOptions = options; return this; }, bindTooltip() { return this; }
   };
   const boundary = JSON.parse(readFileSync(new URL("../boundary.geojson", import.meta.url)));
   let invalid = false;
+  let copiedLink;
   const payload = { features: [{
     attributes: { SITENUMBER: 66204, SITENAME: "Ashley Gorge", Last_sample: Date.now(),
       Change_last_hour_mm: 0, Current_flow_m3s: 0, Current_stage_height_m: 0 },
@@ -54,6 +58,8 @@ test("an invalid refresh keeps the last good station rows and shows a warning", 
   }] };
 
   const globals = {
+    location: new URL("https://example.com/monitor/?a=66204&b="),
+    navigator: { clipboard: { writeText: async link => { copiedLink = link; } } },
     document: { querySelector: selector => nodes.get(selector) ?? null, createElement: () => new Element() },
     L: { map: () => map, tileLayer: () => leafletLayer, layerGroup: () => leafletLayer,
       geoJSON: () => leafletLayer, circleMarker: () => leafletLayer },
@@ -77,6 +83,18 @@ test("an invalid refresh keeps the last good station rows and shows a warning", 
   const firstName = () => readings.children[0]?.children[1]?.textContent;
   assert.match(feed.textContent, /^Last successful refresh/);
   assert.equal(firstName(), "Ashley Gorge");
+  assert.equal(nodes.get("#station-a").value, "66204");
+  assert.equal(nodes.get("#station-b").value, "");
+  await nodes.get("#share-comparison").click();
+  assert.equal(copiedLink, "https://example.com/monitor/?a=66204&b=#comparison");
+
+  assert.equal(popupOptions.autoPan, true);
+  const popup = popupContent();
+  assert.deepEqual(popup.children.map(child => child.className),
+    [undefined, "level-reading", "gauge-popup-actions"]);
+  const clearsBeforePan = markerClears;
+  mapEvents.get("moveend")();
+  assert.equal(markerClears, clearsBeforePan);
 
   readings.children[0].children[2].click();
   const levelCard = nodes.get("#details-a").children[0].children[0];
