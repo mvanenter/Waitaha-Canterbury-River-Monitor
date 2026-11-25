@@ -181,7 +181,8 @@ function render({ redrawMarkers = true } = {}) {
   const counts = Object.fromEntries(Object.keys(statuses).map(key => [key, 0]));
   const visible = [];
   const pinned = new Map();
-  $("#share-comparison").disabled = !slots.some(slot => selectedStation(slot));
+  const hasSelection = slots.some(slot => selectedStation(slot));
+  $("#share-comparison").disabled = $("#copy-results").disabled = !hasSelection;
   for (const slot of slots) {
     const station = selectedStation(slot);
     $("#pinned-" + slot).textContent = station?.SITENAME ?? "Choose a station";
@@ -305,21 +306,42 @@ for (const slot of slots) {
   });
 }
 
-$("#share-comparison").addEventListener("click", async () => {
-  const link = comparisonLink(location.href, $("#station-a").value, $("#station-b").value);
-  const fallback = $("#comparison-link");
+async function copyComparison(text, label) {
+  const fallback = $("#comparison-copy");
   try {
-    await navigator.clipboard.writeText(link);
+    await navigator.clipboard.writeText(text);
     fallback.hidden = true;
-    $("#share-status").textContent = "Comparison link copied.";
+    $("#share-status").textContent = `${label} copied.`;
   } catch {
-    fallback.value = link;
+    fallback.value = text;
     fallback.hidden = false;
     fallback.focus();
     fallback.select();
-    $("#share-status").textContent = "Copy the selected link.";
+    $("#share-status").textContent = `Press Ctrl+C to copy the selected ${label.toLowerCase()}.`;
   }
+}
+
+$("#share-comparison").addEventListener("click", () =>
+  copyComparison(comparisonLink(location.href, $("#station-a").value, $("#station-b").value), "Comparison link"));
+
+$("#copy-results").addEventListener("click", () => {
+  const unit = (value, suffix) => Number.isFinite(value) ? `${numberText(value)} ${suffix}` : "Not reported";
+  const sections = ["Waitaha Canterbury River Monitor", "Source: Environment Canterbury (provisional observations). Times shown in New Zealand local time."];
+  for (const slot of slots) {
+    const station = selectedStation(slot);
+    if (!station) continue;
+    sections.push([
+      `Station ${slot.toUpperCase()} · ${station.SITENAME}`,
+      `Last observed: ${timeText(station.Last_sample)}`,
+      `Water level: ${unit(station.Current_stage_height_m, "m")}`,
+      `Water-level change in the preceding hour: ${unit(station.Change_last_hour_mm, "mm")}`,
+      `Current flow: ${unit(station.Current_flow_m3s, "m³/s")}`,
+      `7-day peak flow: ${unit(station.Peak_flow_7_day, "m³/s")}`
+    ].join("\n"));
+  }
+  return copyComparison(sections.join("\n\n"), "Comparison results");
 });
+
 // Keep the open pop-up attached when Leaflet pans to make room for it.
 map.on("moveend", () => render({ redrawMarkers: false }));
 

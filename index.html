@@ -26,9 +26,9 @@
 <ul id="stations"></ul>
 </section>
 </div>
-<section id="comparison" class="comparison" aria-labelledby="comparison-title"><div class="section-title"><h2 id="comparison-title">Compare stations</h2><button id="share-comparison" type="button" disabled>Copy comparison link</button></div>
+<section id="comparison" class="comparison" aria-labelledby="comparison-title"><div class="section-title"><h2 id="comparison-title">Compare stations</h2><div class="comparison-tools"><button id="copy-results" type="button" disabled>Copy results</button> <button id="share-comparison" type="button" disabled>Copy comparison link</button></div></div>
 <p id="share-status" role="status"></p>
-<input id="comparison-link" type="url" aria-label="Shareable comparison link" readonly hidden>
+<textarea id="comparison-copy" aria-label="Copyable comparison text" rows="7" readonly hidden></textarea>
 <div class="compare-grid">
 <article><label for="station-a">Station A</label><select id="station-a"></select><div id="details-a"></div></article>
 <article><label for="station-b">Station B</label><select id="station-b"></select><div id="details-b"></div></article>
