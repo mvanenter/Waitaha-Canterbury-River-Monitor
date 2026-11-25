@@ -24,3 +24,7 @@ The original dashboard used a spatial selection and a live layer filter. The sta
 ![ArcGIS dashboard comparing Ahuriri SH8 and Dobsons Drain](docs/arcgis-comparison.png)
 
 [Watch the ArcGIS dashboard walkthrough](docs/arcgis-demo.mp4)
+
+## Maintenance
+
+See the [technical handover](docs/technical-handover.md) for design decisions, the release checks and a peer handover exercise. Run `node --test tests/monitor.test.mjs` with Node.js 22 or newer.
