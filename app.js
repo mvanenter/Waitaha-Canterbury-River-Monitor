@@ -325,7 +325,30 @@ $("#copy-results").addEventListener("click", async () => {
   const text = rows.map(row => row.join("\t")).join("\n");
   const fallback = $("#comparison-copy");
   try {
-    await navigator.clipboard.writeText(text);
+    if (typeof ClipboardItem === "function" && navigator.clipboard?.write) {
+      const table = element("table");
+      table.style.borderCollapse = "collapse";
+      for (const [index, values] of rows.entries()) {
+        const row = element("tr");
+        for (const value of values) {
+          const cell = element(index === 0 ? "th" : "td", value);
+          cell.style.cssText = "border:1px solid #a5b6c4;padding:6px 8px;text-align:left";
+          if (index === 0) cell.style.backgroundColor = "#e8eff5";
+          row.append(cell);
+        }
+        table.append(row);
+      }
+      try {
+        await navigator.clipboard.write([new ClipboardItem({
+          "text/html": new Blob([table.outerHTML], { type: "text/html" }),
+          "text/plain": new Blob([text], { type: "text/plain" })
+        })]);
+      } catch {
+        await navigator.clipboard.writeText(text);
+      }
+    } else {
+      await navigator.clipboard.writeText(text);
+    }
     fallback.hidden = true;
     $("#share-status").textContent = "Results copied.";
   } catch {
