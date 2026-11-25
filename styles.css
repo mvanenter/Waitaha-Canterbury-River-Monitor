@@ -13,3 +13,8 @@
 .level-reading{display:grid;gap:3px;margin:8px 0;padding:9px 11px;background:#f1f5f9;border-left:3px solid #0369a1;border-radius:4px}
 .level-label,.level-context{font-size:.82rem;color:#465d71}
 .level-value{font-size:1.5rem;line-height:1.2;color:#142d42}
+
+.level-chart{margin:10px 0;font-size:.82rem;color:#465d71}
+.level-chart h3{color:#142d42;font-size:.85rem;margin:0 0 4px}
+.level-chart p{margin:3px 0}
+.level-chart canvas{display:block;width:100%;height:auto}

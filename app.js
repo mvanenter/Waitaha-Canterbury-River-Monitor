@@ -1,3 +1,4 @@
+import { readHistory, recordLevels, plotLevel } from "./history.mjs";
 import { feedUrl, fields, selectCanterbury, statusOf } from "./data.mjs";
 
 const $ = selector => document.querySelector(selector);
@@ -16,6 +17,7 @@ const timeText = value => Number.isFinite(value) ? dateFormat.format(value) : "N
 const numberText = value => Number.isFinite(value) ? numberFormat.format(value) : "Not reported";
 const cacheKey = "waitaha-observations-v1";
 let stations = [];
+let levelHistory = readHistory();
 let filter = "all";
 let lastFetch = null;
 let boundary;
@@ -54,6 +56,29 @@ function selectedStation(slot) {
   return stations.find(row => String(row.SITENUMBER) === id);
 }
 
+function levelChart(station) {
+  const now = Date.now();
+  const points = (levelHistory[station.SITENUMBER] ?? []).filter(
+    ([time]) => time >= now - 86_400_000 && time <= now);
+  const section = element("section", null, "level-chart");
+  section.append(element("h3", "Water level over the past 24 hours"));
+  if (points.length < 2) {
+    section.append(element("p", "Waiting for at least two new observations. This browser collects readings while the dashboard is open."));
+    return section;
+  }
+  const canvas = element("canvas");
+  canvas.width = 480;
+  canvas.height = 165;
+  canvas.setAttribute("role", "img");
+  const first = points[0], last = points.at(-1);
+  canvas.setAttribute("aria-label",
+    `Water level at ${station.SITENAME}. First saved reading: ${first[1]} metres at ${timeText(first[0])}. Latest saved reading: ${last[1]} metres at ${timeText(last[0])}.`);
+  plotLevel(canvas, points, now);
+  section.append(canvas, element("p",
+    `${points.length} saved observations · NZ local time · Collected in this browser`));
+  return section;
+}
+
 function details(station) {
   const detailsPanel = element("div");
   const reading = element("div", null, "level-reading");
@@ -81,7 +106,7 @@ function details(station) {
     row.append(element("dt", label), element("dd", value));
     list.append(row);
   }
-  detailsPanel.append(reading, list);
+  detailsPanel.append(reading, levelChart(station), list);
   return detailsPanel;
 }
 
@@ -237,6 +262,7 @@ async function refresh() {
     const payload = await response.json();
     const next = selectCanterbury(payload, boundary);
     stations = next;
+    levelHistory = recordLevels(levelHistory, next);
     lastFetch = Date.now();
     refreshFailed = false;
     try { localStorage.setItem(cacheKey, JSON.stringify({ payload, lastFetch })); } catch { /* In-memory fallback remains available. */ }

@@ -49,7 +49,7 @@ test("an invalid refresh keeps the last good station rows and shows a warning", 
   let invalid = false;
   const payload = { features: [{
     attributes: { SITENUMBER: 66204, SITENAME: "Ashley Gorge", Last_sample: Date.now(),
-      Change_last_hour_mm: 0, Current_flow_m3s: 0 },
+      Change_last_hour_mm: 0, Current_flow_m3s: 0, Current_stage_height_m: 0 },
     geometry: { x: 172.126, y: -43.236 }
   }] };
 
@@ -77,6 +77,11 @@ test("an invalid refresh keeps the last good station rows and shows a warning", 
   const firstName = () => readings.children[0]?.children[1]?.textContent;
   assert.match(feed.textContent, /^Last successful refresh/);
   assert.equal(firstName(), "Ashley Gorge");
+
+  readings.children[0].children[2].click();
+  const levelCard = nodes.get("#details-a").children[0].children[0];
+  assert.equal(levelCard.children[1].textContent, "0 m");
+  assert.match(levelCard.children[2].textContent, /^No water-level change/);
 
   invalid = true;
   await nodes.get("#refresh").click();
